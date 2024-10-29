@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Class Instance Details"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:paddingBottom="16dp"/>
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:stretchColumns="1">
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Course Name:" />
+            <TextView android:id="@+id/textViewCourseName" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Day of the Week:" />
+            <TextView android:id="@+id/textViewDayOfWeek" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Time of Course:" />
+            <TextView android:id="@+id/textViewTime" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Capacity:" />
+            <TextView android:id="@+id/textViewCapacity" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Duration:" />
+            <TextView android:id="@+id/textViewDuration" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Price per Class:" />
+            <TextView android:id="@+id/textViewPrice" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Type of Class:" />
+            <TextView android:id="@+id/textViewType" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Description:" />
+            <TextView android:id="@+id/textViewDescription" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </TableRow>
+    </TableLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Instance Details"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp"/>
+
+    <TextView android:id="@+id/textViewDate" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+    <TextView android:id="@+id/textViewTeacher" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+    <TextView android:id="@+id/textViewComments" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+</LinearLayout>

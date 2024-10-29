@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Universal Yoga Admin</string>
+
+    <string-array name="days_of_week_array">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+
+    <string-array name="class_type_array">
+        <item>Hatha Yoga</item>
+        <item>Vinyasa Yoga</item>
+        <item>Bikram Yoga</item>
+        <item>Ashtanga Yoga</item>
+        <item>Yin Yoga</item>
+    </string-array>
+
+    <string-array name="sort_price_options">
+        <item>Sort by price (Low to High)</item>
+        <item>Sort by price (High to Low)</item>
+    </string-array>
+</resources>
