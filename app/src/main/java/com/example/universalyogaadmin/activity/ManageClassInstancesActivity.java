@@ -24,6 +24,7 @@ import com.example.universalyogaadmin.adapter.ClassInstanceAdapter;
 import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.model.ClassInstance;
 import com.example.universalyogaadmin.model.Course; // Đảm bảo bạn đã có model cho Course
+import com.example.universalyogaadmin.utils.NetworkUtil;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.ParseException;
@@ -160,14 +161,14 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
                         adapter.notifyDataSetChanged();
                         Toast.makeText(this, "Thêm lớp học thành công!", Toast.LENGTH_SHORT).show();
 
-                        // Đồng bộ hóa với Firestore
-                        syncWithFirestore(newClassInstance); // Gọi sau khi thêm vào SQLite
+                        if (NetworkUtil.isNetworkAvailable(this)) {
+                            syncWithFirestore(newClassInstance); // Sync if network is available
+                        } else {
+                            Toast.makeText(this, "Không có kết nối mạng. Lớp học sẽ được đồng bộ sau.", Toast.LENGTH_SHORT).show();
+                        }
                     } else {
                         Toast.makeText(this, "Thêm lớp học thất bại!", Toast.LENGTH_SHORT).show();
                     }
-
-
-
                     Log.d("DB_INSERT", "Thêm lớp học với ID: " + newId);
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
@@ -177,16 +178,19 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
     }
 
     public void syncWithFirestore(ClassInstance classInstance) {
+        if (!NetworkUtil.isNetworkAvailable(this)) {
+            Toast.makeText(this, "Không có kết nối mạng. Lớp học sẽ được đồng bộ sau.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         db.collection("classInstances")
                 .add(classInstance.toMap())
                 .addOnSuccessListener(documentReference -> {
-                    // Lấy Firestore ID sau khi lưu vào Firestore
                     String firestoreId = documentReference.getId();
-                    classInstance.setFirestoreId(firestoreId); // Cập nhật firestoreId vào đối tượng
+                    classInstance.setFirestoreId(firestoreId);
 
-                    // Cập nhật Firestore ID trong SQLite
                     long updateResult = databaseHelper.updateFirestoreIdInSQLite(classInstance.getId(), firestoreId);
                     if (updateResult == -1) {
                         Log.e("Firestore", "Không thể cập nhật Firestore ID vào SQLite");

@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.universalyogaadmin.R;
 import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.model.Course;
+import com.example.universalyogaadmin.utils.NetworkUtil;
 
 public class EditCourseActivity extends AppCompatActivity {
 
@@ -116,14 +117,19 @@ public class EditCourseActivity extends AppCompatActivity {
             course.setPrice(price);
             course.setDescription(description);
 
-            // Lưu vào database
-            if (databaseHelper.updateCourseByFirestoreId(firestoreId, course)) {
-                Intent resultIntent = new Intent();
-                resultIntent.putExtra("updated_course", course); // Trả về khóa học đã cập nhật
-                setResult(RESULT_OK, resultIntent); // Đặt kết quả là OK
-                finish(); // Đóng EditCourseActivity
+            // Kiểm tra kết nối mạng trước khi lưu vào Firestore
+            if (NetworkUtil.isNetworkAvailable(this)) {
+                // Lưu vào database
+                if (databaseHelper.updateCourseByFirestoreId(firestoreId, course)) {
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("updated_course", course); // Trả về khóa học đã cập nhật
+                    setResult(RESULT_OK, resultIntent); // Đặt kết quả là OK
+                    finish(); // Đóng EditCourseActivity
+                } else {
+                    Toast.makeText(EditCourseActivity.this, "Lỗi khi cập nhật khóa học", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(EditCourseActivity.this, "Lỗi khi cập nhật khóa học", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Không có kết nối mạng. Vui lòng thử lại sau.", Toast.LENGTH_SHORT).show();
             }
         });
 

@@ -663,6 +663,36 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return classInstance; // Trả về đối tượng ClassInstance hoặc null nếu không tìm thấy
     }
 
+    public List<Course> getUnsyncedCourses() {
+        List<Course> unsyncedCourses = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query("courses", null, "firestore_id IS NULL", null, null, null, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                // Giả sử Course có các thuộc tính id, name, v.v...
+                int id = cursor.getInt(cursor.getColumnIndex("id"));
+                String name = cursor.getString(cursor.getColumnIndex("name"));
+                // Lấy các trường dữ liệu khác của Course
+                Course course = new Course(id, name /* Thêm các thuộc tính khác */);
+                unsyncedCourses.add(course);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+
+        return unsyncedCourses;
+    }
+
+    public void updateCourseFirestoreId(int courseId, String firestoreId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("firestoreId", firestoreId);
+        db.update("courses", values, "id = ?", new String[]{String.valueOf(courseId)});
+        db.close();
+    }
+
+
 
 
 

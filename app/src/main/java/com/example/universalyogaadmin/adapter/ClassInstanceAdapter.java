@@ -22,6 +22,7 @@ import com.example.universalyogaadmin.activity.ClassInstanceDetailActivity;
 import com.example.universalyogaadmin.model.ClassInstance;
 import com.example.universalyogaadmin.model.Course;
 import com.example.universalyogaadmin.database.DatabaseHelper;
+import com.example.universalyogaadmin.utils.NetworkUtil;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -172,6 +173,13 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
 
         dialogBuilder.setTitle("Edit Class Instance")
                 .setPositiveButton("Save", (dialog, which) -> {
+
+                    // Kiểm tra kết nối mạng khi ấn nút "Save"
+                    if (!NetworkUtil.isNetworkAvailable(context)) {
+                        Toast.makeText(context, "Không có kết nối mạng. Vui lòng kiểm tra lại kết nối và thử lại.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
                     // Declare the variables as final for use in the lambda
                     final String date = editTextDate.getText().toString().trim();
                     final String teacher = editTextTeacher.getText().toString().trim();
@@ -214,6 +222,13 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
 
 
     private void delete(String firestoreId) {
+
+        // Kiểm tra kết nối mạng trước khi thực hiện xóa
+        if (!NetworkUtil.isNetworkAvailable(context)) {
+            Toast.makeText(context, "Không có kết nối mạng. Vui lòng kiểm tra lại kết nối và thử lại.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(context);
         dialogBuilder.setTitle("Xóa lớp học")
                 .setMessage("Bạn có chắc chắn muốn xóa lớp học này?")

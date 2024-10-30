@@ -2,7 +2,10 @@ package com.example.universalyogaadmin.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -27,6 +30,7 @@ import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.listener.OnCourseDeleteListener;
 import com.example.universalyogaadmin.model.ClassInstance;
 import com.example.universalyogaadmin.model.Course;
+import com.example.universalyogaadmin.utils.NetworkUtil;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -230,21 +234,55 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
     }
 
     private String addCourseToFirestore(Course course, Dialog dialog) {
-        // Initialize Firestore
+        // Kiểm tra xem course có phải null không
+        if (course == null) {
+            Log.w("Firestore", "Course object is null");
+            return null;
+        }
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        DocumentReference newCourseRef = db.collection("courses").document(); // Automatically generate ID
+        DocumentReference newCourseRef = db.collection("courses").document();
 
-        // Add course data to Firestore
-        newCourseRef.set(course).addOnSuccessListener(aVoid -> {
-            // Optionally handle success
-            Log.d("Firestore", "Course added with ID: " + newCourseRef.getId());
-        }).addOnFailureListener(e -> {
-            // Optionally handle error
-            Log.w("Firestore", "Error adding course", e);
-        });
+        // Thêm dữ liệu khóa học vào Firestore
+        newCourseRef.set(course)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("Firestore", "Course added with ID: " + newCourseRef.getId());
+                    dialog.dismiss(); // Đóng dialog khi thêm thành công
+                    databaseHelper.updateCourseFirestoreId(course.getId(), newCourseRef.getId());
+                })
+                .addOnFailureListener(e -> {
+                    Log.w("Firestore", "Error adding course", e);
+                    Toast.makeText(dialog.getContext(), "Lỗi khi thêm khóa học vào Firestore!", Toast.LENGTH_SHORT).show();
+                });
 
-        return newCourseRef.getId(); // Return the generated Firestore ID
+        return newCourseRef.getId();
     }
+
+    private void syncCoursesToFirestore(Dialog dialog) {
+        if (NetworkUtil.isNetworkAvailable(this)) {
+            List<Course> coursesToSync = databaseHelper.getUnsyncedCourses();
+            dialog.show(); // Hiển thị dialog khi bắt đầu đồng bộ
+
+            for (Course course : coursesToSync) {
+                // Kiểm tra nếu course không null
+                if (course != null) {
+                    String firestoreId = addCourseToFirestore(course, dialog);
+                    Log.d("SyncCourses", "Firestore ID for course " + course.getId() + ": " + firestoreId);
+
+                    if (firestoreId != null) {
+                        databaseHelper.updateCourseFirestoreId(course.getId(), firestoreId);
+                    }
+                } else {
+                    Log.w("SyncCourses", "Course is null for syncing");
+                }
+            }
+
+            Toast.makeText(this, "All unsynced courses uploaded to Firestore!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "No network connection available. Sync failed.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     // Phương thức kiểm tra xem chuỗi có phải là số không
     private boolean isNumeric(String str) {
         if (str == null || str.isEmpty()) {
@@ -317,30 +355,35 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
             }
 
             if (isValid) {
-                ClassInstance classInstance = new ClassInstance();
-                classInstance.setCourseId(course.getId());
-                classInstance.setDate(classDate);
-                classInstance.setTeacher(teacher);
-                classInstance.setComments(comments);
-                classInstance.setCourseName(course.getCourseName());
+                // Kiểm tra kết nối mạng trước khi thêm lớp
+                if (NetworkUtil.isNetworkAvailable(this)) {
+                    ClassInstance classInstance = new ClassInstance();
+                    classInstance.setCourseId(course.getId());
+                    classInstance.setDate(classDate);
+                    classInstance.setTeacher(teacher);
+                    classInstance.setComments(comments);
+                    classInstance.setCourseName(course.getCourseName());
 
-                // Thêm vào SQLite
-                long result = databaseHelper.addClassToCourse(classInstance, null);
-                if (result != -1) {
-                    firestore.collection("class_instances")
-                            .add(classInstance.toMap())
-                            .addOnSuccessListener(documentReference -> {
-                                String firestoreId = documentReference.getId();
+                    // Thêm vào SQLite
+                    long result = databaseHelper.addClassToCourse(classInstance, null);
+                    if (result != -1) {
+                        firestore.collection("class_instances")
+                                .add(classInstance.toMap())
+                                .addOnSuccessListener(documentReference -> {
+                                    String firestoreId = documentReference.getId();
 
-                                // Chỉ cập nhật Firestore ID trong SQLite
-                                databaseHelper.updateFirestoreId(result, firestoreId);
+                                    // Chỉ cập nhật Firestore ID trong SQLite
+                                    databaseHelper.updateFirestoreId(result, firestoreId);
 
-                                Toast.makeText(this, "Đã thêm lớp thành công và đồng bộ Firestore!", Toast.LENGTH_SHORT).show();
-                                dialog.dismiss();
-                            })
-                            .addOnFailureListener(e -> Toast.makeText(this, "Lỗi khi đồng bộ với Firestore", Toast.LENGTH_SHORT).show());
+                                    Toast.makeText(this, "Đã thêm lớp thành công và đồng bộ Firestore!", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                })
+                                .addOnFailureListener(e -> Toast.makeText(this, "Lỗi khi đồng bộ với Firestore", Toast.LENGTH_SHORT).show());
+                    } else {
+                        Toast.makeText(this, "Lỗi khi thêm lớp", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
-                    Toast.makeText(this, "Lỗi khi thêm lớp", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Không có kết nối mạng. Vui lòng kiểm tra lại.", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -364,16 +407,20 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
                 return; // Dừng việc xóa nếu Firestore ID không hợp lệ
             }
 
-            // Xóa khóa học từ SQLite
-            boolean isDeletedFromSQLite = databaseHelper.deleteCourseByFirestoreId(firestoreId);
-            if (isDeletedFromSQLite) {
-                // Xóa khóa học từ Firestore
-                deleteCourseFromFirestore(firestoreId); // Gọi phương thức mà không có ID khóa học
-                // Cập nhật danh sách và thông báo cho adapter
-                courseAdapter.removeCourseById(courseId);
-                Toast.makeText(this, "Khóa học và tất cả lớp học liên quan đã được xóa", Toast.LENGTH_SHORT).show();
+            if (NetworkUtil.isNetworkAvailable(this)) {
+                // Xóa khóa học từ SQLite
+                boolean isDeletedFromSQLite = databaseHelper.deleteCourseByFirestoreId(firestoreId);
+                if (isDeletedFromSQLite) {
+                    // Xóa khóa học từ Firestore
+                    deleteCourseFromFirestore(firestoreId); // Gọi phương thức mà không có ID khóa học
+                    // Cập nhật danh sách và thông báo cho adapter
+                    courseAdapter.removeCourseById(courseId);
+                    Toast.makeText(this, "Khóa học và tất cả lớp học liên quan đã được xóa", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Lỗi khi xóa khóa học từ SQLite", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(this, "Lỗi khi xóa khóa học từ SQLite", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Không có kết nối mạng. Vui lòng kiểm tra lại.", Toast.LENGTH_SHORT).show();
             }
         } else {
             Toast.makeText(this, "Không tìm thấy khóa học với ID: " + courseId, Toast.LENGTH_SHORT).show();
@@ -408,24 +455,6 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
                     }
                 });
     }
-
-
-    // Method to delete course from Firestore
-        public void deleteCourseFromFirestore(String firestoreId, int courseId) {
-            firestore.collection("courses") // Thay thế "courses" bằng tên collection của bạn
-                    .document(firestoreId)
-                    .delete()
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d("Firestore", "Tài liệu đã được xóa thành công!");
-                        // Cập nhật danh sách và thông báo cho adapter chỉ khi xóa Firestore thành công
-                        courseAdapter.removeCourseById(courseId);
-                        Toast.makeText(this, "Khóa học đã được xóa từ Firestore", Toast.LENGTH_SHORT).show();
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.w("Firestore", "Lỗi khi xóa tài liệu", e);
-                        Toast.makeText(this, "Lỗi khi xóa khóa học từ Firestore: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
-        }
 
     private boolean validateDate(String date, String courseDayOfWeek) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()); // Adjusted format
