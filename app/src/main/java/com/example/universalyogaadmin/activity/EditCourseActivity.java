@@ -2,29 +2,35 @@ package com.example.universalyogaadmin.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.example.universalyogaadmin.R;
 import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.model.Course;
 
-import java.util.Arrays;
-
 public class EditCourseActivity extends AppCompatActivity {
+
     private EditText editTextCourseName, editTextTime, editTextCapacity, editTextDuration, editTextPrice, editTextDescription;
     private Spinner spinnerDayOfWeek, spinnerTypeOfClass;
     private Button buttonSave, buttonCancel;
+    private DatabaseHelper databaseHelper; // Thêm biến cho DatabaseHelper
+
+    private String firestoreId; // Firestore ID của khóa học
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_course);
 
-        // Initialize views
+        // Khởi tạo các view
         editTextCourseName = findViewById(R.id.editTextCourseName);
         spinnerDayOfWeek = findViewById(R.id.spinnerDayOfWeek);
         spinnerTypeOfClass = findViewById(R.id.spinnerTypeOfClass);
@@ -36,86 +42,91 @@ public class EditCourseActivity extends AppCompatActivity {
         buttonSave = findViewById(R.id.buttonSave);
         buttonCancel = findViewById(R.id.buttonCancel);
 
-        // Get the course data from the intent
-        Course course = (Course) getIntent().getSerializableExtra("course");
+        // Khởi tạo DatabaseHelper
+        databaseHelper = new DatabaseHelper(this);
 
-        // Retrieve string arrays from resources
-        String[] daysOfWeek = getResources().getStringArray(R.array.days_of_week_array);
-        String[] typesOfClass = getResources().getStringArray(R.array.class_type_array);
+        int courseId = getIntent().getIntExtra("courseId", -1); // Lấy ID khóa học
+        firestoreId = getIntent().getStringExtra("firestoreId"); // Lấy Firestore ID
 
-        // Set up the spinners with the string arrays
-        ArrayAdapter<String> dayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, daysOfWeek);
+
+        // Kiểm tra giá trị nhận được
+        Log.d("EditCourseActivity", "Received Course ID: " + courseId);
+        Log.d("EditCourseActivity", "Received Firestore ID: " + firestoreId);
+
+
+        // Lấy khóa học từ SQLite
+        Course course = databaseHelper.getCourseById(courseId); // Sử dụng courseId kiểu int
+
+        // Kiểm tra xem đối tượng course có null không
+        if (course == null) {
+            Toast.makeText(this, "Khóa học không tồn tại", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        // Kiểm tra giá trị Firestore ID
+        if (firestoreId == null || firestoreId.isEmpty()) {
+            Toast.makeText(this, "ID Firestore không hợp lệ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Đổ dữ liệu vào các trường editText và spinner
+        editTextCourseName.setText(course.getCourseName());
+        editTextTime.setText(course.getTime());
+        editTextCapacity.setText(String.valueOf(course.getCapacity()));
+        editTextDuration.setText(course.getDuration());
+        editTextPrice.setText(String.valueOf(course.getPrice()));
+        editTextDescription.setText(course.getDescription());
+        // Thiết lập giá trị cho spinner nếu cần
+
+        ArrayAdapter<CharSequence> dayAdapter = ArrayAdapter.createFromResource(this,
+                R.array.days_of_week_array, android.R.layout.simple_spinner_item);
         dayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerDayOfWeek.setAdapter(dayAdapter);
 
-        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, typesOfClass);
-        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerTypeOfClass.setAdapter(typeAdapter);
+        ArrayAdapter<CharSequence> classTypeAdapter = ArrayAdapter.createFromResource(this,
+                R.array.class_type_array, android.R.layout.simple_spinner_item);
+        classTypeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerTypeOfClass.setAdapter(classTypeAdapter);
 
-        // Populate fields with existing course data
-        if (course != null) {
-            editTextCourseName.setText(course.getCourseName());
-            editTextTime.setText(course.getTime());
-            editTextCapacity.setText(String.valueOf(course.getCapacity()));
-            editTextDuration.setText(course.getDuration());
-            editTextPrice.setText(String.valueOf(course.getPrice()));
-            editTextDescription.setText(course.getDescription());
-
-            // Set selected item in spinners
-            int dayPosition = Arrays.asList(daysOfWeek).indexOf(course.getDayOfWeek());
-            spinnerDayOfWeek.setSelection(dayPosition >= 0 ? dayPosition : 0);
-
-            int typePosition = Arrays.asList(typesOfClass).indexOf(course.getType());
-            spinnerTypeOfClass.setSelection(typePosition >= 0 ? typePosition : 0);
-        }
-
-        // Set button listeners for save and cancel
         buttonSave.setOnClickListener(v -> {
+            // Kiểm tra lại Firestore ID khi nhấn nút lưu
+            if (firestoreId == null || firestoreId.isEmpty()) {
+                Toast.makeText(EditCourseActivity.this, "ID Firestore không hợp lệ", Toast.LENGTH_SHORT).show();
+                return; // Ngăn không cho thực hiện các bước tiếp theo
+            }
+
             // Lấy thông tin từ các trường EditText và Spinner
             String courseName = editTextCourseName.getText().toString();
             String dayOfWeek = spinnerDayOfWeek.getSelectedItem().toString();
-            String type = spinnerTypeOfClass.getSelectedItem().toString(); // Khai báo biến type
+            String type = spinnerTypeOfClass.getSelectedItem().toString();
             String time = editTextTime.getText().toString();
             int capacity = Integer.parseInt(editTextCapacity.getText().toString());
             String duration = editTextDuration.getText().toString();
             double price = Double.parseDouble(editTextPrice.getText().toString());
             String description = editTextDescription.getText().toString();
 
-            // Tạo một đối tượng Course mới hoặc cập nhật đối tượng hiện tại
-            if (course != null) {
-                course.setCourseName(courseName);
-                course.setDayOfWeek(dayOfWeek);
-                course.setType(type); // Sử dụng biến type
-                course.setTime(time);
-                course.setCapacity(capacity);
-                course.setDuration(duration);
-                course.setPrice(price);
-                course.setDescription(description);
+            // Cập nhật thông tin khóa học
+            course.setCourseName(courseName);
+            course.setDayOfWeek(dayOfWeek);
+            course.setType(type);
+            course.setTime(time);
+            course.setCapacity(capacity);
+            course.setDuration(duration);
+            course.setPrice(price);
+            course.setDescription(description);
 
-                // Lưu vào database
-                DatabaseHelper dbHelper = new DatabaseHelper(EditCourseActivity.this);
-                if (dbHelper.updateCourse(course)) {
-                    Intent resultIntent = new Intent();
-                    resultIntent.putExtra("updated_course", course); // Trả về khóa học đã cập nhật
-                    setResult(RESULT_OK, resultIntent); // Đặt kết quả là OK
-                    finish(); // Đóng EditCourseActivity
-                } else {
-                    Toast.makeText(EditCourseActivity.this, "Lỗi khi lưu khóa học", Toast.LENGTH_SHORT).show();
-                }
+            // Lưu vào database
+            if (databaseHelper.updateCourseByFirestoreId(firestoreId, course)) {
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("updated_course", course); // Trả về khóa học đã cập nhật
+                setResult(RESULT_OK, resultIntent); // Đặt kết quả là OK
+                finish(); // Đóng EditCourseActivity
+            } else {
+                Toast.makeText(EditCourseActivity.this, "Lỗi khi cập nhật khóa học", Toast.LENGTH_SHORT).show();
             }
         });
 
-
-        buttonCancel.setOnClickListener(v -> finish()); // Close the activity
-    }
-
-    private int getSpinnerIndex(Spinner spinner, String myString) {
-        int index = 0;
-        for (int i = 0; i < spinner.getCount(); i++) {
-            if (spinner.getItemAtPosition(i).toString().equals(myString)) {
-                index = i;
-            }
-        }
-        return index;
+        buttonCancel.setOnClickListener(v -> finish()); // Đóng activity
     }
 }

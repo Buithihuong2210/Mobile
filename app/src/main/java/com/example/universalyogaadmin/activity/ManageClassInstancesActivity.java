@@ -1,7 +1,9 @@
 package com.example.universalyogaadmin.activity;
 
 import android.app.DatePickerDialog;
+import android.content.ContentValues;
 import android.content.DialogInterface;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -16,11 +18,13 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.universalyogaadmin.R;
 import com.example.universalyogaadmin.adapter.ClassInstanceAdapter;
 import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.model.ClassInstance;
 import com.example.universalyogaadmin.model.Course; // Đảm bảo bạn đã có model cho Course
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -45,8 +49,6 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manage_class_instances);
 
-
-
         recyclerView = findViewById(R.id.recyclerViewClassInstances);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -60,6 +62,8 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
         courseList = databaseHelper.getAllCourses(); // Cài đặt hàm này trong DatabaseHelper
         adapter = new ClassInstanceAdapter(classInstanceList, courseList, this);
         recyclerView.setAdapter(adapter);
+
+
 
         buttonAddClassInstance.setOnClickListener(v -> showAddClassDialog());
 
@@ -108,7 +112,6 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
         View dialogView = inflater.inflate(R.layout.dialog_add_class_instance, null);
         dialogBuilder.setView(dialogView);
 
-
         EditText editTextDate = dialogView.findViewById(R.id.editTextDate);
         EditText editTextTeacher = dialogView.findViewById(R.id.editTextTeacher);
         EditText editTextComments = dialogView.findViewById(R.id.editTextComments);
@@ -125,24 +128,21 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
                     String teacher = editTextTeacher.getText().toString().trim();
                     String comments = editTextComments.getText().toString().trim();
                     Course selectedCourse = (Course) spinnerCourses.getSelectedItem();
-                    // Kiểm tra nếu khóa học không phải là null và lấy ngày trong tuần
 
-
-                        // Kiểm tra các trường nhập liệu
+                    // Kiểm tra các trường nhập liệu
                     if (date.isEmpty() || teacher.isEmpty() || selectedCourse == null) {
                         Toast.makeText(this, "Vui lòng điền tất cả các trường bắt buộc!", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                        // Kiểm tra nếu khóa học không phải là null và lấy ngày trong tuần
-                        if (selectedCourse != null) {
-                            String courseDayOfWeek = selectedCourse.getDayOfWeek(); // Lấy ngày trong tuần từ khóa học
 
-                            // Validate the date against the course day of the week
-                            if (!validateDate(date, courseDayOfWeek)) {
-                                Toast.makeText(this, "Ngày phải khớp với ngày trong tuần thứ " + courseDayOfWeek + " của khóa học.", Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                        }
+                    // Lấy ngày trong tuần từ khóa học
+                    String courseDayOfWeek = selectedCourse.getDayOfWeek();
+
+                    // Validate the date against the course day of the week
+                    if (!validateDate(date, courseDayOfWeek)) {
+                        Toast.makeText(this, "Ngày phải khớp với ngày trong tuần thứ " + courseDayOfWeek + " của khóa học.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
                     // Tạo đối tượng ClassInstance mới
                     ClassInstance newClassInstance = new ClassInstance();
@@ -152,16 +152,21 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
                     newClassInstance.setTeacher(teacher);
                     newClassInstance.setComments(comments);
 
-                    // Lưu vào DB và nhận ID
-                    long newId = databaseHelper.addClassInstance(newClassInstance);
+                    Log.d("ManageClassInstances", "Giá trị firestoreId: " + newClassInstance.getFirestoreId());
+                    long newId = databaseHelper.addClassInstance(newClassInstance, newClassInstance.getFirestoreId());
                     if (newId != -1) {
-                        newClassInstance.setId((int) newId); // Giả sử ID là kiểu int
+                        newClassInstance.setId((int) newId);
                         classInstanceList.add(newClassInstance);
                         adapter.notifyDataSetChanged();
                         Toast.makeText(this, "Thêm lớp học thành công!", Toast.LENGTH_SHORT).show();
+
+                        // Đồng bộ hóa với Firestore
+                        syncWithFirestore(newClassInstance); // Gọi sau khi thêm vào SQLite
                     } else {
                         Toast.makeText(this, "Thêm lớp học thất bại!", Toast.LENGTH_SHORT).show();
                     }
+
+
 
                     Log.d("DB_INSERT", "Thêm lớp học với ID: " + newId);
                 })
@@ -171,14 +176,49 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+    public void syncWithFirestore(ClassInstance classInstance) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("classInstances")
+                .add(classInstance.toMap())
+                .addOnSuccessListener(documentReference -> {
+                    // Lấy Firestore ID sau khi lưu vào Firestore
+                    String firestoreId = documentReference.getId();
+                    classInstance.setFirestoreId(firestoreId); // Cập nhật firestoreId vào đối tượng
+
+                    // Cập nhật Firestore ID trong SQLite
+                    long updateResult = databaseHelper.updateFirestoreIdInSQLite(classInstance.getId(), firestoreId);
+                    if (updateResult == -1) {
+                        Log.e("Firestore", "Không thể cập nhật Firestore ID vào SQLite");
+                    } else {
+                        Log.d("Firestore", "Cập nhật Firestore ID thành công trong SQLite: " + firestoreId);
+                    }
+
+                    Log.d("Firestore", "Lớp học đã được đồng bộ với Firestore với ID: " + firestoreId);
+                })
+                .addOnFailureListener(e -> Log.e("Firestore", "Lỗi khi đồng bộ với Firestore", e));
+    }
+
 
     private void addClassInstance(Course course, String teacher, String date, String comments) {
-        // Assuming course.getId() returns the ID of the course
-        ClassInstance newClassInstance = new ClassInstance(0, course.getId(), course.getCourseName(), date, teacher, comments);
-        databaseHelper.addClassInstance(newClassInstance);
-        classInstanceList.add(newClassInstance);
-        adapter.notifyItemInserted(classInstanceList.size() - 1);
+        // Lấy courseId và courseName từ đối tượng Course
+        int courseId = course.getId();
+        String courseName = course.getCourseName();
+        String firestoreId = ""; // Khởi tạo Firestore ID nếu cần
+
+        // Tạo đối tượng ClassInstance mới
+        ClassInstance newClassInstance = new ClassInstance(0, courseId, courseName, date, teacher, comments, null);
+
+        // Thêm ClassInstance vào cơ sở dữ liệu và danh sách
+        DatabaseHelper databaseHelper = new DatabaseHelper(this);
+        long newId = databaseHelper.addClassInstance(newClassInstance, firestoreId);
+
+        if (newId != -1) { // Kiểm tra nếu thêm thành công
+            classInstanceList.add(newClassInstance);
+            adapter.notifyItemInserted(classInstanceList.size() - 1);
+        }
     }
+
 
     private boolean validateDate(String date, String courseDayOfWeek) {
         try {
@@ -200,39 +240,35 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
             }
 
             // Convert the course day of the week to its corresponding number
-            int courseDayOfWeekInt = convertDayOfWeekToInt(courseDayOfWeek);
+            int courseDayOfWeekInt = convertDayOfWeekStringToInt(courseDayOfWeek);
 
-            // Check if the entered date matches the day of the week for the course
+            // Compare the two
             return dayOfWeek == courseDayOfWeekInt;
 
         } catch (ParseException e) {
-            e.printStackTrace();
-            return false; // If unable to parse the date
+            Toast.makeText(this, "Ngày không hợp lệ, vui lòng nhập theo định dạng dd/MM/yyyy!", Toast.LENGTH_SHORT).show();
+            return false;
         }
     }
 
-    // Method to convert day name to corresponding number
-    private int convertDayOfWeekToInt(String dayOfWeek) {
-        switch (dayOfWeek.substring(0, 1).toUpperCase() + dayOfWeek.substring(1).toLowerCase()) {
-            case "Monday":
+    private int convertDayOfWeekStringToInt(String day) {
+        switch (day.toLowerCase()) {
+            case "monday":
                 return 1;
-            case "Tuesday":
+            case "tuesday":
                 return 2;
-            case "Wednesday":
+            case "wednesday":
                 return 3;
-            case "Thursday":
+            case "thursday":
                 return 4;
-            case "Friday":
+            case "friday":
                 return 5;
-            case "Saturday":
+            case "saturday":
                 return 6;
-            case "Sunday":
+            case "sunday":
                 return 7;
             default:
-                throw new IllegalArgumentException("Invalid day of week: " + dayOfWeek);
+                return -1; // Invalid day
         }
     }
-
-
-
 }

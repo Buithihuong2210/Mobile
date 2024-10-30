@@ -4,6 +4,7 @@ import static com.example.universalyogaadmin.R.layout.item_course;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,16 +62,31 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
 
         holder.buttonDelete.setOnClickListener(v -> {
             if (deleteListener != null) {
-                deleteListener.onCourseDelete(course.getId()); // Call the delete method on the listener
+                deleteListener.onCourseDelete(course.getId(), course.getFirestoreId()); // Call the delete method on the listener
             }
         });
 
-        holder.buttonEdit.setOnClickListener(v -> {
-            Intent intent = new Intent(context, EditCourseActivity.class);
-            intent.putExtra("course", course); // Gửi đối tượng course qua intent
-            context.startActivity(intent);
-        });
 
+        holder.buttonEdit.setOnClickListener(v -> {
+            // Lấy ID khóa học từ đối tượng Course
+            int courseId = course.getId();
+
+            // Gọi getCourseById để lấy thông tin khóa học
+            Course courseToEdit = databaseHelper.getCourseById(courseId);
+
+            if (courseToEdit != null) {
+                // Log Firestore ID
+                Log.d("CourseEdit", "Firestore ID: " + courseToEdit.getFirestoreId());
+
+                // Chuyển đến EditCourseActivity với ID và Firestore ID
+                Intent intent = new Intent(context, EditCourseActivity.class);
+                intent.putExtra("courseId", courseToEdit.getId()); // Gửi ID khóa học
+                intent.putExtra("firestoreId", courseToEdit.getFirestoreId()); // Gửi Firestore ID
+                context.startActivity(intent);
+            } else {
+                Log.e("CourseEdit", "Course not found for ID: " + courseId);
+            }
+        });
 
 
         holder.buttonDetail.setOnClickListener(v -> {
@@ -89,13 +105,10 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         return courseList.size();
     }
 
-    private void deleteCourse(int courseId) {
-        boolean isDeleted = databaseHelper.deleteCourse(courseId);
-        if (isDeleted) {
-            // Cập nhật danh sách và thông báo
-            courseList.removeIf(course -> course.getId() == courseId);
-            notifyDataSetChanged();
-        }
+    // Method to remove a course by ID
+    public void removeCourseById(int courseId) {
+        courseList.removeIf(course -> course.getId() == courseId); // Remove course from list
+        notifyDataSetChanged(); // Notify adapter of data change
     }
 
     public static class CourseViewHolder extends RecyclerView.ViewHolder {

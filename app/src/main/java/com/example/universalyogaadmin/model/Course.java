@@ -3,6 +3,7 @@ import java.io.Serializable;
 
 public class Course implements Serializable {
     private int id;
+    private String firestoreId; // Kiểm tra rằng trường này có sẵn
     private String courseName;
     private String dayOfWeek;
     private String time;
@@ -11,7 +12,6 @@ public class Course implements Serializable {
     private double price;
     private String type;
     private String description;
-    private String firestoreId;
 
 
     public Course() {
@@ -23,8 +23,10 @@ public class Course implements Serializable {
     }
 
     // Constructor mới với tất cả các tham số
-    public Course(int id, String courseName, String dayOfWeek, String time, int capacity, String duration, double price, String type, String description) {
+    public Course(int id, String firestoreId, String courseName, String dayOfWeek, String time,
+                  int capacity, String duration, double price, String type, String description) {
         this.id = id;
+        this.firestoreId = firestoreId; // Đảm bảo gán giá trị
         this.courseName = courseName;
         this.dayOfWeek = dayOfWeek;
         this.time = time;
@@ -34,6 +36,8 @@ public class Course implements Serializable {
         this.type = type;
         this.description = description;
     }
+
+
 
     // Getters and Setters
     public int getId() {
@@ -116,7 +120,6 @@ public class Course implements Serializable {
     public String getFirestoreId() {
         return firestoreId;
     }
-
     public void setFirestoreId(String firestoreId) {
         this.firestoreId = firestoreId;
     }
