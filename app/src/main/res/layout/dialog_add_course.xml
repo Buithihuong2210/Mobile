@@ -19,10 +19,22 @@
         android:layout_height="wrap_content"
         android:hint="Course Name" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Day of the Week"
+        android:paddingTop="8dp"/>
+
     <Spinner
         android:id="@+id/spinnerDayOfWeek"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Type of Class"
+        android:paddingTop="8dp"/>
 
     <Spinner
         android:id="@+id/spinnerTypeOfClass"

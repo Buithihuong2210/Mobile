@@ -23,6 +23,7 @@ import com.example.universalyogaadmin.model.ClassInstance;
 import com.example.universalyogaadmin.model.Course;
 import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.utils.NetworkUtil;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -206,10 +207,13 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
                         Log.d("Firestore", "firestoreId hợp lệ: " + firestoreId); // Log valid ID message
                     }
 
+
                     // Update SQLite database
                     if (databaseHelper.updateClassInstance(firestoreId, classInstance)) {
                         notifyItemChanged(classInstanceList.indexOf(classInstance)); // Update RecyclerView
+                        loadClassInstances(); // Tải lại danh sách sau khi cập nhật
                         Toast.makeText(context, "Cập nhật lớp học thành công!", Toast.LENGTH_SHORT).show();
+
                     } else {
                         Toast.makeText(context, "Cập nhật lớp học thất bại!", Toast.LENGTH_SHORT).show();
                     }
@@ -222,7 +226,6 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
 
 
     private void delete(String firestoreId) {
-
         // Kiểm tra kết nối mạng trước khi thực hiện xóa
         if (!NetworkUtil.isNetworkAvailable(context)) {
             Toast.makeText(context, "Không có kết nối mạng. Vui lòng kiểm tra lại kết nối và thử lại.", Toast.LENGTH_SHORT).show();
@@ -237,16 +240,18 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
 
                     // Xóa lớp học từ Firestore
                     FirebaseFirestore db = FirebaseFirestore.getInstance();
-                    db.collection("class_instances").document(firestoreId)
+                    db.collection("classInstances").document(firestoreId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
-                                // Nếu xóa thành công từ Firestore, xóa từ SQLite
+                                Log.d("ClassInstanceAdapter", "Successfully deleted from Firestore.");
+
+                                // Nếu xóa thành công từ Firestore, tiếp tục xóa từ SQLite
                                 if (databaseHelper.deleteClassInstance(firestoreId)) { // Gọi với firestoreId
                                     if (firestoreId != null) {
                                         classInstanceList.removeIf(instance ->
                                                 firestoreId.equals(instance.getFirestoreId())); // Xóa khỏi danh sách
+                                        loadClassInstances(); // Tải lại danh sách sau khi xóa
                                     }
-                                    notifyDataSetChanged(); // Cập nhật RecyclerView
                                     Toast.makeText(context, "Lớp học đã được xóa!", Toast.LENGTH_SHORT).show();
                                 } else {
                                     Toast.makeText(context, "Xóa lớp học thất bại từ SQLite!", Toast.LENGTH_SHORT).show();
@@ -262,7 +267,6 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         AlertDialog alertDialog = dialogBuilder.create();
         alertDialog.show();
     }
-
 
     @Override
     public int getItemCount() {
@@ -296,22 +300,30 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         return null; // Return null if no matching course is found
     }
 
-    public void loadClassInstances() {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("class_instances").get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                for (QueryDocumentSnapshot document : task.getResult()) {
-                    ClassInstance classInstance = new ClassInstance();
-                    classInstance.setFirestoreId(document.getId()); // Gán firestoreId
-                    // Gán các thuộc tính khác từ document
+    private void loadClassInstances() {
+        // Kiểm tra kết nối mạng trước khi tải lại danh sách
+        if (!NetworkUtil.isNetworkAvailable(context)) {
+            Toast.makeText(context, "Không có kết nối mạng. Vui lòng kiểm tra lại kết nối và thử lại.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-                    classInstanceList.add(classInstance); // Thêm vào danh sách
-                }
-                notifyDataSetChanged(); // Cập nhật RecyclerView
-            } else {
-                Log.e("ClassInstanceAdapter", "Error getting documents: ", task.getException());
-            }
-        });
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("classInstances").get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    classInstanceList.clear(); // Xóa danh sách hiện tại
+                    for (DocumentSnapshot document : queryDocumentSnapshots) {
+                        ClassInstance classInstance = document.toObject(ClassInstance.class);
+                        classInstance.setFirestoreId(document.getId()); // Thêm ID của Firestore
+                        classInstanceList.add(classInstance); // Thêm lớp học vào danh sách
+                    }
+                    notifyDataSetChanged(); // Cập nhật RecyclerView
+                    Toast.makeText(context, "Tải lại lớp học thành công!", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("ClassInstanceAdapter", "Error loading class instances", e);
+                    Toast.makeText(context, "Tải lại lớp học thất bại!", Toast.LENGTH_SHORT).show();
+                });
     }
+
 
 }

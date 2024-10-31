@@ -372,22 +372,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private void updateFirestore(String firestoreId, ClassInstance classInstance) {
         FirebaseFirestore dbFirestore = FirebaseFirestore.getInstance();
 
-        Log.d("Firestore", "Kiểm tra firestoreId: " + firestoreId);
+        Log.d("Firestore", "Checking firestoreId: " + firestoreId);
 
         if (firestoreId == null) {
-            Log.e("Firestore", "firestoreId không được phép null!");
-            return; // Không cần hiển thị Toast ở đây nếu bạn chỉ đang kiểm tra log
+            Log.e("Firestore", "firestoreId cannot be null!");
+            return; // Avoid displaying Toast here if just checking logs
         }
 
-        // Cập nhật Firestore với firestoreId đã tồn tại
-        dbFirestore.collection("class_instances")
-                .document(firestoreId)
+        // Only update in "classInstances" collection using the correct firestoreId
+        dbFirestore.collection("classInstances")
+                .document(firestoreId) // Ensure this is the correct document in "classInstances"
                 .set(classInstance)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("Firestore", "Cập nhật ClassInstance thành công cho ID: " + firestoreId);
+                    Log.d("Firestore", "Successfully updated ClassInstance for ID: " + firestoreId);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("Firestore", "Cập nhật ClassInstance thất bại cho ID: " + firestoreId, e);
+                    Log.e("Firestore", "Failed to update ClassInstance for ID: " + firestoreId, e);
                 });
     }
 

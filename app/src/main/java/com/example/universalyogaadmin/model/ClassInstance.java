@@ -13,7 +13,7 @@ public class ClassInstance implements Serializable {
     private String comments;
     private String firestoreId;
 
-    // Constructor không tham số
+    // Constructor không tham sốg
     public ClassInstance() {}
 
     // Constructor có tham số

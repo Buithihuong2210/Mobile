@@ -151,7 +151,7 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
         final Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_add_course);
 
-        // Thiết lập kích thước cho dialog
+        // Set dialog size
         dialog.getWindow().setLayout(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 
         EditText editTextCourseName = dialog.findViewById(R.id.editTextCourseName);
@@ -165,7 +165,7 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
         Button buttonSave = dialog.findViewById(R.id.buttonSave);
         Button buttonCancel = dialog.findViewById(R.id.buttonCancel);
 
-        // Thiết lập Adapter cho Spinner
+        // Set adapters for Spinners
         ArrayAdapter<CharSequence> dayAdapter = ArrayAdapter.createFromResource(this,
                 R.array.days_of_week_array, android.R.layout.simple_spinner_item);
         dayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -186,13 +186,13 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
             String priceStr = editTextPrice.getText().toString().trim();
             String description = editTextDescription.getText().toString().trim();
 
-            // Kiểm tra thông tin đã đầy đủ chưa
+            // Check if all required fields are filled
             if (courseName.isEmpty() || time.isEmpty() || capacityStr.isEmpty() || duration.isEmpty() || priceStr.isEmpty()) {
                 Toast.makeText(this, "Please fill in all required fields!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Kiểm tra xem capacity và price có phải là số không
+            // Validate numeric fields
             if (!isNumeric(capacityStr) || !isNumeric(priceStr)) {
                 Toast.makeText(this, "Capacity and Price must be numeric values!", Toast.LENGTH_SHORT).show();
                 return;
@@ -201,6 +201,42 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
             int capacity = Integer.parseInt(capacityStr);
             double price = Double.parseDouble(priceStr);
 
+            // Show confirmation dialog
+            showConfirmationDialog(courseName, dayOfWeek, type, time, capacity, duration, price, description, dialog);
+        });
+
+        buttonCancel.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    private void showConfirmationDialog(String courseName, String dayOfWeek, String type, String time, int capacity,
+                                        String duration, double price, String description, Dialog addCourseDialog) {
+        final Dialog confirmDialog = new Dialog(this);
+        confirmDialog.setContentView(R.layout.dialog_confirm_course);
+
+        TextView textViewCourseName = confirmDialog.findViewById(R.id.textViewCourseName);
+        TextView textViewDayOfWeek = confirmDialog.findViewById(R.id.textViewDayOfWeek);
+        TextView textViewTypeOfClass = confirmDialog.findViewById(R.id.textViewTypeOfClass);
+        TextView textViewTime = confirmDialog.findViewById(R.id.textViewTime);
+        TextView textViewCapacity = confirmDialog.findViewById(R.id.textViewCapacity);
+        TextView textViewDuration = confirmDialog.findViewById(R.id.textViewDuration);
+        TextView textViewPrice = confirmDialog.findViewById(R.id.textViewPrice);
+        TextView textViewDescription = confirmDialog.findViewById(R.id.textViewDescription);
+        Button buttonConfirm = confirmDialog.findViewById(R.id.buttonConfirm);
+        Button buttonEdit = confirmDialog.findViewById(R.id.buttonEdit);
+
+       // Populate confirmation dialog with course details
+        textViewCourseName.setText(courseName);
+        textViewDayOfWeek.setText(dayOfWeek);
+        textViewTypeOfClass.setText(type);
+        textViewTime.setText(time);
+        textViewCapacity.setText(String.valueOf(capacity));
+        textViewDuration.setText(duration);
+        textViewPrice.setText(String.format("$%.2f", price));
+        textViewDescription.setText(description);
+
+        // Confirm button action
+        buttonConfirm.setOnClickListener(v -> {
             Course course = new Course();
             course.setCourseName(courseName);
             course.setDayOfWeek(dayOfWeek);
@@ -211,15 +247,19 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
             course.setPrice(price);
             course.setDescription(description);
 
+
             // Add course to Firestore
-            String firestoreId = addCourseToFirestore(course, dialog);
+            String firestoreId = addCourseToFirestore(course, confirmDialog);
             if (firestoreId != null) {
                 course.setFirestoreId(firestoreId); // Set Firestore ID to course
                 long id = databaseHelper.addCourse(course, firestoreId); // Save to SQLite
+                course.setId((int) id); // Update ID in Course object
+
                 if (id != -1) {
                     Toast.makeText(this, "Course added successfully!", Toast.LENGTH_SHORT).show();
                     loadCourses(); // Refresh course list
-                    dialog.dismiss();
+                    addCourseDialog.dismiss(); // Close add course dialog
+                    confirmDialog.dismiss(); // Close confirmation dialog
                 } else {
                     Toast.makeText(this, "Error adding course to database", Toast.LENGTH_SHORT).show();
                 }
@@ -228,10 +268,12 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
             }
         });
 
-        buttonCancel.setOnClickListener(v -> dialog.dismiss());
+        // Edit button to go back to add course dialog
+        buttonEdit.setOnClickListener(v -> confirmDialog.dismiss());
 
-        dialog.show();
+        confirmDialog.show();
     }
+
 
     private String addCourseToFirestore(Course course, Dialog dialog) {
         // Kiểm tra xem course có phải null không
@@ -243,19 +285,23 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         DocumentReference newCourseRef = db.collection("courses").document();
 
+        String firestoreId = newCourseRef.getId();
+        Log.d("Firestore", "Generated Firestore ID: " + firestoreId);
+
         // Thêm dữ liệu khóa học vào Firestore
         newCourseRef.set(course)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("Firestore", "Course added with ID: " + newCourseRef.getId());
+                    Log.d("Firestore", "Course added with ID: " + firestoreId);
+                    course.setFirestoreId(firestoreId); // Gán firestoreId vào đối tượng
+                    databaseHelper.updateCourseFirestoreId(course.getId(), firestoreId);
                     dialog.dismiss(); // Đóng dialog khi thêm thành công
-                    databaseHelper.updateCourseFirestoreId(course.getId(), newCourseRef.getId());
                 })
                 .addOnFailureListener(e -> {
                     Log.w("Firestore", "Error adding course", e);
                     Toast.makeText(dialog.getContext(), "Lỗi khi thêm khóa học vào Firestore!", Toast.LENGTH_SHORT).show();
                 });
 
-        return newCourseRef.getId();
+        return firestoreId;
     }
 
     private void syncCoursesToFirestore(Dialog dialog) {
@@ -367,7 +413,7 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
                     // Thêm vào SQLite
                     long result = databaseHelper.addClassToCourse(classInstance, null);
                     if (result != -1) {
-                        firestore.collection("class_instances")
+                        firestore.collection("classInstances")
                                 .add(classInstance.toMap())
                                 .addOnSuccessListener(documentReference -> {
                                     String firestoreId = documentReference.getId();
@@ -436,13 +482,13 @@ public class ManageCoursesActivity extends AppCompatActivity implements OnCourse
                 .addOnFailureListener(e -> Log.e("ManageCoursesActivity", "Xóa khóa học từ Firestore thất bại: ", e));
 
         // Bước 1: Xóa tất cả các lớp học liên quan từ Firestore
-        db.collection("class_instances")
+        db.collection("classInstances")
                 .whereEqualTo(CLASS_INSTANCE_COURSE_ID, firestoreId) // Sử dụng hằng số đã định nghĩa
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            db.collection("class_instances").document(document.getId()).delete()
+                            db.collection("classInstances").document(document.getId()).delete()
                                     .addOnSuccessListener(aVoid -> {
                                         Log.d("Firestore", "Xóa thành công lớp học với ID: " + document.getId());
                                     })
