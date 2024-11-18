@@ -25,30 +25,21 @@ import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.utils.NetworkUtil;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-
 
 import java.util.List;
 
+// Constructor to initialize the adapter with class instances, courses, and context
 public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdapter.ViewHolder> {
     private List<ClassInstance> classInstanceList;
-    private List<Course> courseList; // List of courses
+    private List<Course> courseList;
     private Context context;
     private DatabaseHelper databaseHelper;
 
-    // Constructor for the adapter
     public ClassInstanceAdapter(List<ClassInstance> classInstanceList, List<Course> courseList, Context context) {
         this.classInstanceList = classInstanceList;
-        this.courseList = courseList; // Assign the course list
+        this.courseList = courseList;
         this.context = context;
-        this.databaseHelper = new DatabaseHelper(context); // Khởi tạo DatabaseHelper
-    }
-
-    // New method to update the data in the adapter
-    public void updateData(List<ClassInstance> newClassInstances) {
-        this.classInstanceList.clear(); // Clear the current list
-        this.classInstanceList.addAll(newClassInstances); // Add new items
-        notifyDataSetChanged(); // Notify the RecyclerView to refresh
+        this.databaseHelper = new DatabaseHelper(context);
     }
 
     @NonNull
@@ -63,6 +54,7 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ClassInstance classInstance = classInstanceList.get(position);
 
+        // Set the data for the current item (e.g., course name, date, teacher, comments)
         holder.courseName.setText(classInstance.getCourseName());
         holder.date.setText(classInstance.getDate());
         holder.teacher.setText(classInstance.getTeacher());
@@ -70,10 +62,11 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         String commentsText = "Comment: " + classInstance.getComments();
         holder.comments.setText(commentsText);
 
+        // Handle the "Deatails" button click
         holder.buttonDetails.setOnClickListener(v -> {
             Intent intent = new Intent(context, ClassInstanceDetailActivity.class);
 
-            Course course = getCourseById(classInstance.getCourseId()); // Call the new method
+            Course course = getCourseById(classInstance.getCourseId());
 
             if (classInstance != null && course != null) {
                 intent.putExtra("classInstance", classInstance);
@@ -81,62 +74,56 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
                 context.startActivity(intent);
             } else {
                 Log.e("ClassInstanceAdapter", "ClassInstance or Course is null");
-                // Optionally, show a toast
             }
         });
 
+        // Handle the "Edit" button click
         holder.buttonEdit.setOnClickListener(v -> {
-            // Assuming classInstance has a method to get its ID
-            int classInstanceId = classInstance.getId(); // Get the ID of the ClassInstance
+            int classInstanceId = classInstance.getId();
 
-            // Retrieve the ClassInstance from the database to get the firestoreId
             ClassInstance retrievedInstance = databaseHelper.getClassInstanceById(classInstanceId);
 
             if (retrievedInstance != null) {
-                String firestoreId = retrievedInstance.getFirestoreId(); // Get the Firestore ID from the retrieved instance
+                String firestoreId = retrievedInstance.getFirestoreId();
 
-                // Log the Firestore ID for debugging
                 if (firestoreId != null) {
                     Log.d("FirestoreID", "Retrieved Firestore ID: " + firestoreId);
                 } else {
                     Log.e("FirestoreID", "Firestore ID is null for ClassInstance ID: " + classInstanceId);
                 }
-
-                // Call the edit method with both parameters
                 edit(firestoreId, retrievedInstance);
             } else {
                 Log.e("Edit", "ClassInstance not found for ID: " + classInstanceId);
-                Toast.makeText(context, "Lỗi: Không tìm thấy lớp học để chỉnh sửa.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Error: Class not found to edit.", Toast.LENGTH_SHORT).show();
             }
         });
 
-
-
+        // Handle the "Delete" button click
         holder.buttonDelete.setOnClickListener(v -> {
             int classId = classInstance.getId(); // Lấy ID lớp học
-            ClassInstance instanceToDelete = databaseHelper.getClassInstanceById(classId); // Lấy classInstance từ DB
+            ClassInstance instanceToDelete = databaseHelper.getClassInstanceById(classId);
 
             if (instanceToDelete != null) {
-                String firestoreId = instanceToDelete.getFirestoreId(); // Lấy firestoreId từ classInstance
+                String firestoreId = instanceToDelete.getFirestoreId();
                 Log.d("ClassInstanceAdapter", "Firestore ID: " + firestoreId);
 
 
                 if (firestoreId != null && !firestoreId.isEmpty()) {
-                    delete(firestoreId); // Gọi hàm delete với firestoreId
+                    delete(firestoreId);
                 } else {
-                    Toast.makeText(context, "Không thể tìm thấy Firestore ID!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Could not find Firestore ID!", Toast.LENGTH_SHORT).show();
                 }
             } else {
-                Toast.makeText(context, "Không tìm thấy lớp học để xóa!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Class not found to delete!", Toast.LENGTH_SHORT).show();
             }
         });
 
     }
 
+    // Method to edit the class instance
     private void edit(String firestoreId, ClassInstance classInstance) {
-        // Check if classInstance is null
         if (classInstance == null) {
-            Toast.makeText(context, "Không tìm thấy lớp học!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Class not found!", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -145,22 +132,29 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         View dialogView = inflater.inflate(R.layout.dialog_edit_class_instance, null);
         dialogBuilder.setView(dialogView);
 
+        // Initialize views in the dialog (e.g., date, teacher, comments, and course spinner)
         EditText editTextDate = dialogView.findViewById(R.id.editTextDate);
         EditText editTextTeacher = dialogView.findViewById(R.id.editTextTeacher);
         EditText editTextComments = dialogView.findViewById(R.id.editTextComments);
         Spinner spinnerCourses = dialogView.findViewById(R.id.spinnerCourseName);
 
-        // Setup the adapter for Spinner
+        // Set up the adapter for the spinner
         ArrayAdapter<Course> adapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, courseList);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCourses.setAdapter(adapter);
 
-        // Fill in the current information into the fields
+        // Pre-fill the fields with existing data
         editTextDate.setText(classInstance.getDate());
         editTextTeacher.setText(classInstance.getTeacher());
         editTextComments.setText(classInstance.getComments());
 
-        // Select the current course in the spinner
+        int courseId = classInstance.getCourseId();
+
+        if (courseId == 0) {
+            Log.e("Debug", "Course ID is missing for classInstance ID: " + classInstance.getId());
+            courseId = courseList.get(0).getId();
+        }
+
         int selectedPosition = 0;
         for (int i = 0; i < courseList.size(); i++) {
             if (courseList.get(i).getId() == classInstance.getCourseId()) {
@@ -168,6 +162,8 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
                 break;
             }
         }
+        Log.d("Debug", "Selected position: " + selectedPosition + ", Course ID: " + classInstance.getCourseId());
+
         spinnerCourses.setSelection(selectedPosition);
 
         Log.d("Edit ClassInstance", "Current Firestore ID: " + firestoreId);
@@ -175,47 +171,40 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         dialogBuilder.setTitle("Edit Class Instance")
                 .setPositiveButton("Save", (dialog, which) -> {
 
-                    // Kiểm tra kết nối mạng khi ấn nút "Save"
                     if (!NetworkUtil.isNetworkAvailable(context)) {
-                        Toast.makeText(context, "Không có kết nối mạng. Vui lòng kiểm tra lại kết nối và thử lại.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, "No network connection. Please check and try again.", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    // Declare the variables as final for use in the lambda
                     final String date = editTextDate.getText().toString().trim();
                     final String teacher = editTextTeacher.getText().toString().trim();
                     final String comments = editTextComments.getText().toString().trim();
                     final Course selectedCourse = (Course) spinnerCourses.getSelectedItem();
 
-                    // Validate input fields
                     if (date.isEmpty() || teacher.isEmpty() || selectedCourse == null) {
-                        Toast.makeText(context, "Vui lòng điền tất cả các trường bắt buộc!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, "Please fill in all required fields!", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
-                    // Update the ClassInstance
                     classInstance.setDate(date);
                     classInstance.setTeacher(teacher);
                     classInstance.setComments(comments);
                     classInstance.setCourseId(selectedCourse.getId());
                     classInstance.setCourseName(selectedCourse.getCourseName());
 
-                    // Log Firestore ID
                     if (firestoreId == null) {
-                        Log.e("Firestore", "firestoreId không hợp lệ!"); // Log error message
+                        Log.e("Firestore", "firestoreId không hợp lệ!");
                     } else {
-                        Log.d("Firestore", "firestoreId hợp lệ: " + firestoreId); // Log valid ID message
+                        Log.d("Firestore", "firestoreId hợp lệ: " + firestoreId);
                     }
-
 
                     // Update SQLite database
                     if (databaseHelper.updateClassInstance(firestoreId, classInstance)) {
-                        notifyItemChanged(classInstanceList.indexOf(classInstance)); // Update RecyclerView
+                        notifyItemChanged(classInstanceList.indexOf(classInstance));
                         loadClassInstances(); // Tải lại danh sách sau khi cập nhật
-                        Toast.makeText(context, "Cập nhật lớp học thành công!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, "Class instance updated successfully!", Toast.LENGTH_SHORT).show();
 
                     } else {
-                        Toast.makeText(context, "Cập nhật lớp học thất bại!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, "Failed to update class instance!", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
@@ -224,45 +213,42 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         alertDialog.show();
     }
 
-
+    // Method to delete a class instance
     private void delete(String firestoreId) {
-        // Kiểm tra kết nối mạng trước khi thực hiện xóa
         if (!NetworkUtil.isNetworkAvailable(context)) {
-            Toast.makeText(context, "Không có kết nối mạng. Vui lòng kiểm tra lại kết nối và thử lại.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "No network connection. Please check and try again.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(context);
-        dialogBuilder.setTitle("Xóa lớp học")
-                .setMessage("Bạn có chắc chắn muốn xóa lớp học này?")
-                .setPositiveButton("Có", (dialog, which) -> {
+        dialogBuilder.setTitle("Delete Class")
+                .setMessage("Are you sure you want to delete this class instance?")
+                .setPositiveButton("Yes", (dialog, which) -> {
                     Log.d("ClassInstanceAdapter", "Deleting class instance with Firestore ID: " + firestoreId);
 
-                    // Xóa lớp học từ Firestore
                     FirebaseFirestore db = FirebaseFirestore.getInstance();
                     db.collection("classInstances").document(firestoreId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
                                 Log.d("ClassInstanceAdapter", "Successfully deleted from Firestore.");
 
-                                // Nếu xóa thành công từ Firestore, tiếp tục xóa từ SQLite
-                                if (databaseHelper.deleteClassInstance(firestoreId)) { // Gọi với firestoreId
+                                if (databaseHelper.deleteClassInstance(firestoreId)) {
                                     if (firestoreId != null) {
                                         classInstanceList.removeIf(instance ->
                                                 firestoreId.equals(instance.getFirestoreId())); // Xóa khỏi danh sách
-                                        loadClassInstances(); // Tải lại danh sách sau khi xóa
+                                        loadClassInstances();
                                     }
-                                    Toast.makeText(context, "Lớp học đã được xóa!", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(context, "Class deleted!", Toast.LENGTH_SHORT).show();
                                 } else {
-                                    Toast.makeText(context, "Xóa lớp học thất bại từ SQLite!", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(context, "Failed to delete class from SQLite!", Toast.LENGTH_SHORT).show();
                                 }
                             })
                             .addOnFailureListener(e -> {
                                 Log.e("ClassInstanceAdapter", "Error deleting document from Firestore", e);
-                                Toast.makeText(context, "Xóa lớp học thất bại từ Firestore!", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(context, "Failed to delete class from Firestore!", Toast.LENGTH_SHORT).show();
                             });
                 })
-                .setNegativeButton("Không", (dialog, which) -> dialog.dismiss());
+                .setNegativeButton("No", (dialog, which) -> dialog.dismiss());
 
         AlertDialog alertDialog = dialogBuilder.create();
         alertDialog.show();
@@ -272,8 +258,6 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
     public int getItemCount() {
         return classInstanceList.size();
     }
-
-
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView courseName, date, teacher, comments;
@@ -291,39 +275,38 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         }
     }
 
+    // Method to get the course by its ID
     private Course getCourseById(int courseId) {
         for (Course course : courseList) {
             if (course.getId() == courseId) {
-                return course; // Return the matching course
+                return course;
             }
         }
-        return null; // Return null if no matching course is found
+        return null;
     }
 
     private void loadClassInstances() {
-        // Kiểm tra kết nối mạng trước khi tải lại danh sách
         if (!NetworkUtil.isNetworkAvailable(context)) {
-            Toast.makeText(context, "Không có kết nối mạng. Vui lòng kiểm tra lại kết nối và thử lại.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "No network connection. Please check your connection and try again.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("classInstances").get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    classInstanceList.clear(); // Xóa danh sách hiện tại
+                    classInstanceList.clear();
                     for (DocumentSnapshot document : queryDocumentSnapshots) {
                         ClassInstance classInstance = document.toObject(ClassInstance.class);
-                        classInstance.setFirestoreId(document.getId()); // Thêm ID của Firestore
-                        classInstanceList.add(classInstance); // Thêm lớp học vào danh sách
+                        classInstance.setFirestoreId(document.getId());
+                        classInstanceList.add(classInstance);
                     }
-                    notifyDataSetChanged(); // Cập nhật RecyclerView
-                    Toast.makeText(context, "Tải lại lớp học thành công!", Toast.LENGTH_SHORT).show();
+                    notifyDataSetChanged(); // Update RecyclerView
+                    Toast.makeText(context, "Class instances reloaded successfully!", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("ClassInstanceAdapter", "Error loading class instances", e);
-                    Toast.makeText(context, "Tải lại lớp học thất bại!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Failed to reload class instances!", Toast.LENGTH_SHORT).show();
                 });
     }
-
 
 }

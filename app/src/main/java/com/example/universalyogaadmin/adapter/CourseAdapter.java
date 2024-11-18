@@ -17,35 +17,33 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.universalyogaadmin.R;
 import com.example.universalyogaadmin.activity.CourseDetailActivity;
 import com.example.universalyogaadmin.activity.EditCourseActivity;
-import com.example.universalyogaadmin.activity.ManageCoursesActivity;
 import com.example.universalyogaadmin.database.DatabaseHelper;
 import com.example.universalyogaadmin.model.Course;
 
 import java.util.List;
-import com.example.universalyogaadmin.listener.OnCourseDeleteListener; // Add this line
+import com.example.universalyogaadmin.listener.OnCourseDeleteListener;
 
 public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseViewHolder> {
     private List<Course> courseList;
     private OnCourseDeleteListener deleteListener;
     private Context context;
     private DatabaseHelper databaseHelper;
-    private OnAddClassClickListener addClassClickListener; // Step 1: Declare the listener
+    private OnAddClassClickListener addClassClickListener;
 
-
-    public interface OnAddClassClickListener { // Step 2: Define the interface
+    // Interface to handle add class click event
+    public interface OnAddClassClickListener {
         void onAddClassClick(Course course);
     }
 
-
-    public CourseAdapter(List<Course> courseList, Context context, OnCourseDeleteListener deleteListener, OnAddClassClickListener addClassClickListener) {
+    // Constructor for the adapter, initializing required variables
+    public CourseAdapter(List<Course> courseList, Context context, OnCourseDeleteListener deleteListener,
+                         OnAddClassClickListener addClassClickListener) {
         this.courseList = courseList;
         this.context = context;
         this.deleteListener = deleteListener;
         this.databaseHelper = new DatabaseHelper(context);
-        this.addClassClickListener = addClassClickListener; // Step 3: Initialize the listener
-
+        this.addClassClickListener = addClassClickListener;
     }
-
 
     @NonNull
     @Override
@@ -60,42 +58,38 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         holder.textViewCourseName.setText(course.getCourseName());
         holder.textViewDetails.setText(course.getDetails());
 
+        // Delete button action
         holder.buttonDelete.setOnClickListener(v -> {
             if (deleteListener != null) {
-                deleteListener.onCourseDelete(course.getId(), course.getFirestoreId()); // Call the delete method on the listener
+                deleteListener.onCourseDelete(course.getId(), course.getFirestoreId());
             }
         });
 
-
+        // Edit button action
         holder.buttonEdit.setOnClickListener(v -> {
-            // Lấy ID khóa học từ đối tượng Course
             int courseId = course.getId();
 
-            // Gọi getCourseById để lấy thông tin khóa học
             Course courseToEdit = databaseHelper.getCourseById(courseId);
 
             if (courseToEdit != null) {
-                // Log Firestore ID
                 Log.d("CourseEdit", "Firestore ID: " + courseToEdit.getFirestoreId());
 
-                // Chuyển đến EditCourseActivity với ID và Firestore ID
                 Intent intent = new Intent(context, EditCourseActivity.class);
-                intent.putExtra("courseId", courseToEdit.getId()); // Gửi ID khóa học
-                intent.putExtra("firestoreId", courseToEdit.getFirestoreId()); // Gửi Firestore ID
+                intent.putExtra("courseId", courseToEdit.getId());
+                intent.putExtra("firestoreId", courseToEdit.getFirestoreId());
                 context.startActivity(intent);
             } else {
                 Log.e("CourseEdit", "Course not found for ID: " + courseId);
             }
         });
 
-
+        // Detail button action
         holder.buttonDetail.setOnClickListener(v -> {
             Intent intent = new Intent(context, CourseDetailActivity.class);
             intent.putExtra("course", course); // Truyền khóa học
             context.startActivity(intent); // Bắt đầu activity chi tiết
         });
 
-        // Step 4: Set up click listener for "Add Class" button
         holder.buttonAddClass.setOnClickListener(v -> addClassClickListener.onAddClassClick(course));
 
     }
@@ -107,17 +101,18 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
 
     // Method to remove a course by ID
     public void removeCourseById(int courseId) {
-        courseList.removeIf(course -> course.getId() == courseId); // Remove course from list
-        notifyDataSetChanged(); // Notify adapter of data change
+        courseList.removeIf(course -> course.getId() == courseId);
+        notifyDataSetChanged();
     }
 
+    // ViewHolder class to hold references to the views for each course item
     public static class CourseViewHolder extends RecyclerView.ViewHolder {
         TextView textViewCourseName;
         TextView textViewDetails;
         Button buttonDelete;
         Button buttonEdit;
         Button buttonDetail;
-        Button buttonAddClass; // Step 1: Declare buttonAddClass
+        Button buttonAddClass;
 
         public CourseViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -126,7 +121,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
             buttonDelete = itemView.findViewById(R.id.buttonDelete);
             buttonEdit = itemView.findViewById(R.id.buttonEdit);
             buttonDetail = itemView.findViewById(R.id.buttonDetail);
-            buttonAddClass = itemView.findViewById(R.id.buttonAddClass); // Step 1: Initialize buttonAddClass
+            buttonAddClass = itemView.findViewById(R.id.buttonAddClass);
         }
     }
 }

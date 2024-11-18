@@ -5,7 +5,6 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Header -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -120,26 +119,17 @@
 
     </TableLayout>
 
-    <!-- Buttons for Edit and Delete -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginTop="16dp"
-        android:gravity="end">
+        android:gravity="center">
 
         <Button
-            android:id="@+id/buttonEdit"
+            android:id="@+id/buttonGoHome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Edit"
-            android:layout_marginEnd="16dp" />
-
-        <Button
-            android:id="@+id/buttonDelete"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Delete" />
+            android:text="Go to Home" />
     </LinearLayout>
-
 </LinearLayout>

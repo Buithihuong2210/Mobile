@@ -5,7 +5,6 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Header TextView -->
     <TextView
         android:id="@+id/textViewHeader"
         android:layout_width="wrap_content"
@@ -14,7 +13,6 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
-    <!-- Search and Search Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -37,7 +35,6 @@
             android:text="Search" />
     </LinearLayout>
 
-    <!-- Sort Dropdown (Spinner) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -52,7 +49,6 @@
             android:spinnerMode="dropdown" />
     </LinearLayout>
 
-    <!-- Add Course Button -->
     <Button
         android:id="@+id/buttonAddCourse"
         android:layout_width="match_parent"
@@ -60,7 +56,6 @@
         android:text="Add Course"
         android:layout_marginTop="8dp" />
 
-    <!-- RecyclerView for displaying the list of courses -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewCourses"
         android:layout_width="match_parent"

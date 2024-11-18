@@ -25,19 +25,20 @@
         android:id="@+id/editTextSearchTeacher"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Nhập tên giáo viên" />
+        android:hint="Enter teacher name" />
 
     <EditText
         android:id="@+id/editTextSearchDate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Nhập ngày (dd/MM/yyyy)" />
+        android:hint="Enter date (dd/MM/yyyy)" />
 
     <Button
         android:id="@+id/buttonSearch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Tìm kiếm" />
+        android:text="Search" />
+
 
     <Button
         android:id="@+id/buttonAddClassInstance"

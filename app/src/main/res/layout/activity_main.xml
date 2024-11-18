@@ -6,8 +6,6 @@
     android:layout_height="match_parent"
     tools:context=".activity.MainActivity">
 
-
-    <!-- Header TextView -->
     <TextView
         android:id="@+id/headerText"
         android:layout_width="wrap_content"
@@ -20,7 +18,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Manage Courses Button -->
     <Button
         android:id="@+id/btnManageCourses"
         android:layout_width="wrap_content"
@@ -31,7 +28,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="50dp"/>
 
-    <!-- Manage Class Instances Button -->
     <Button
         android:id="@+id/btnManageClassInstances"
         android:layout_width="wrap_content"
@@ -41,8 +37,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="30dp"/>
-
-
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

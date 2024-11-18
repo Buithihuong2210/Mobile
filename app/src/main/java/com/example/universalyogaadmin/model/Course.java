@@ -3,7 +3,7 @@ import java.io.Serializable;
 
 public class Course implements Serializable {
     private int id;
-    private String firestoreId; // Kiểm tra rằng trường này có sẵn
+    private String firestoreId;
     private String courseName;
     private String dayOfWeek;
     private String time;
@@ -13,7 +13,6 @@ public class Course implements Serializable {
     private String type;
     private String description;
 
-
     public Course() {
     }
 
@@ -22,7 +21,6 @@ public class Course implements Serializable {
         this.courseName = name;
     }
 
-    // Constructor mới với tất cả các tham số
     public Course(int id, String firestoreId, String courseName, String dayOfWeek, String time,
                   int capacity, String duration, double price, String type, String description) {
         this.id = id;
@@ -37,9 +35,6 @@ public class Course implements Serializable {
         this.description = description;
     }
 
-
-
-    // Getters and Setters
     public int getId() {
         return id;
     }
@@ -54,7 +49,7 @@ public class Course implements Serializable {
 
     @Override
     public String toString() {
-        return courseName; // Đây là cách hiển thị trong Spinner
+        return courseName;
     }
 
     public void setCourseName(String courseName) {

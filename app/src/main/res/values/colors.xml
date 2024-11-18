@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background_color">#F3F4F6</color> <!-- Light grey background -->
-    <color name="header_text_color">#FF6F61</color> <!-- Pastel pink for header text -->
-    <color name="button_background">#FF6F61</color> <!-- Button background color -->
-    <color name="button_text_color">#FFFFFF</color> <!-- Button text color -->
-    <color name="card_background">#FFFFFF</color> <!-- White for card backgrounds -->
-    <color name="divider_color">#D3D3D3</color> <!-- Light gray for dividers -->
-    <color name="text_color">#000000</color> <!-- Black for standard text -->
+    <color name="background_color">#F3F4F6</color>
+    <color name="header_text_color">#FF6F61</color>
+    <color name="button_background">#FF6F61</color>
+    <color name="button_text_color">#FFFFFF</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="divider_color">#D3D3D3</color>
+    <color name="text_color">#000000</color>
 </resources>
 

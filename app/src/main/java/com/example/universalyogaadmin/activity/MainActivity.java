@@ -7,7 +7,6 @@ import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.universalyogaadmin.R;
-import com.google.firebase.Firebase;
 
 
 public class MainActivity extends AppCompatActivity {

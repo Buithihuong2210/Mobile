@@ -20,6 +20,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
         <activity android:name=".activity.ManageCoursesActivity" />
@@ -32,10 +33,7 @@
             android:name=".activity.ManageClassInstancesActivity"
             android:exported="true" />
 
-
         <activity android:name=".activity.ClassInstanceDetailActivity" />
-
-
 
     </application>
 

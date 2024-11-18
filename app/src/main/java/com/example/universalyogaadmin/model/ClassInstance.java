@@ -13,11 +13,10 @@ public class ClassInstance implements Serializable {
     private String comments;
     private String firestoreId;
 
-    // Constructor không tham sốg
     public ClassInstance() {}
 
-    // Constructor có tham số
-    public ClassInstance(int courseId, String courseName, String date, String teacher, String comments, String firestoreId) {
+    public ClassInstance(int courseId, String courseName, String date, String teacher, String comments,
+                         String firestoreId) {
         this.courseId = courseId;
         this.courseName = courseName;
         this.date = date;
@@ -36,8 +35,6 @@ public class ClassInstance implements Serializable {
         this.firestoreId = firestoreId;
     }
 
-
-    // Getter và Setter cho từng trường
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
     public int getCourseId() { return courseId; }
@@ -53,7 +50,6 @@ public class ClassInstance implements Serializable {
     public String getFirestoreId() { return firestoreId; }
     public void setFirestoreId(String firestoreId) { this.firestoreId = firestoreId; }
 
-    // Chuyển đổi đối tượng thành Map để lưu vào Firestore
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("courseId", courseId);

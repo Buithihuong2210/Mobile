@@ -16,7 +16,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@android:color/holo_red_dark"
-        android:visibility="gone" /> <!-- Initially hidden -->
+        android:visibility="gone" />
 
     <EditText
         android:id="@+id/editTextTeacher"
@@ -51,17 +51,17 @@
         android:layout_marginTop="16dp">
 
         <Button
+            android:id="@+id/buttonCancelClass"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="X" />
+
+        <Button
             android:id="@+id/buttonSaveClass"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Save" />
-
-        <Button
-            android:id="@+id/buttonCancelClass"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Cancel" />
     </LinearLayout>
 </LinearLayout>

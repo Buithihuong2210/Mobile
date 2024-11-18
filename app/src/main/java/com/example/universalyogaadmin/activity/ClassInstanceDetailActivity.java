@@ -3,6 +3,7 @@ package com.example.universalyogaadmin.activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -13,6 +14,7 @@ import com.example.universalyogaadmin.model.Course;
 
 public class ClassInstanceDetailActivity extends AppCompatActivity {
 
+    private Button buttonGoHome;
     private TextView textViewCourseName, textViewDayOfWeek, textViewTime,
             textViewCapacity, textViewDuration, textViewPrice, textViewType,
             textViewDescription, textViewDate, textViewTeacher, textViewComments;
@@ -21,6 +23,8 @@ public class ClassInstanceDetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_class_instance_detail);
+
+        buttonGoHome = findViewById(R.id.buttonGoHome);
 
         textViewCourseName = findViewById(R.id.textViewCourseName);
         textViewDayOfWeek = findViewById(R.id.textViewDayOfWeek);
@@ -38,32 +42,31 @@ public class ClassInstanceDetailActivity extends AppCompatActivity {
         ClassInstance classInstance = (ClassInstance) intent.getSerializableExtra("classInstance");
         Course course = (Course) intent.getSerializableExtra("course");
 
-        // Log to check if objects are retrieved properly
         Log.d("ClassInstanceDetailActivity", "Received ClassInstance: " + classInstance);
         Log.d("ClassInstanceDetailActivity", "Received Course: " + course);
 
-        if (classInstance != null && course != null) {
-            // Proceed with setting up the UI
-        } else {
-            Log.e("ClassInstanceDetailActivity", "Failed to retrieve classInstance or course");
-            Toast.makeText(this, "Failed to load details.", Toast.LENGTH_SHORT).show();
-        }
+        buttonGoHome.setOnClickListener(v -> {
+            Intent homeIntent = new Intent(ClassInstanceDetailActivity.this, ManageClassInstancesActivity.class);
+            startActivity(homeIntent);
+            finish();
+        });
 
-        if (classInstance != null) {
+        if (classInstance != null && course != null) {
             textViewDate.setText("Date: " + classInstance.getDate());
             textViewTeacher.setText("Teacher: " + classInstance.getTeacher());
             textViewComments.setText("Comment: " + classInstance.getComments());
-        }
 
-        if (course != null) {
             textViewCourseName.setText(course.getCourseName());
             textViewDayOfWeek.setText(course.getDayOfWeek());
             textViewTime.setText(course.getTime());
             textViewCapacity.setText(String.valueOf(course.getCapacity()));
             textViewDuration.setText(course.getDuration());
-            textViewPrice.setText("£" + course.getPrice());
+            textViewPrice.setText("$" + course.getPrice());
             textViewType.setText(course.getType());
             textViewDescription.setText(course.getDescription());
+        } else {
+            Log.e("ClassInstanceDetailActivity", "Failed to retrieve classInstance or course");
+            Toast.makeText(this, "Failed to load details.", Toast.LENGTH_SHORT).show();
         }
     }
 }
