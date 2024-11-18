@@ -26,7 +26,12 @@ import com.example.universalyogaadmin.utils.NetworkUtil;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 // Constructor to initialize the adapter with class instances, courses, and context
 public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdapter.ViewHolder> {
@@ -132,28 +137,18 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
         View dialogView = inflater.inflate(R.layout.dialog_edit_class_instance, null);
         dialogBuilder.setView(dialogView);
 
-        // Initialize views in the dialog (e.g., date, teacher, comments, and course spinner)
         EditText editTextDate = dialogView.findViewById(R.id.editTextDate);
         EditText editTextTeacher = dialogView.findViewById(R.id.editTextTeacher);
         EditText editTextComments = dialogView.findViewById(R.id.editTextComments);
         Spinner spinnerCourses = dialogView.findViewById(R.id.spinnerCourseName);
 
-        // Set up the adapter for the spinner
         ArrayAdapter<Course> adapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, courseList);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCourses.setAdapter(adapter);
 
-        // Pre-fill the fields with existing data
         editTextDate.setText(classInstance.getDate());
         editTextTeacher.setText(classInstance.getTeacher());
         editTextComments.setText(classInstance.getComments());
-
-        int courseId = classInstance.getCourseId();
-
-        if (courseId == 0) {
-            Log.e("Debug", "Course ID is missing for classInstance ID: " + classInstance.getId());
-            courseId = courseList.get(0).getId();
-        }
 
         int selectedPosition = 0;
         for (int i = 0; i < courseList.size(); i++) {
@@ -162,55 +157,79 @@ public class ClassInstanceAdapter extends RecyclerView.Adapter<ClassInstanceAdap
                 break;
             }
         }
-        Log.d("Debug", "Selected position: " + selectedPosition + ", Course ID: " + classInstance.getCourseId());
-
         spinnerCourses.setSelection(selectedPosition);
 
-        Log.d("Edit ClassInstance", "Current Firestore ID: " + firestoreId);
-
         dialogBuilder.setTitle("Edit Class Instance")
-                .setPositiveButton("Save", (dialog, which) -> {
-
-                    if (!NetworkUtil.isNetworkAvailable(context)) {
-                        Toast.makeText(context, "No network connection. Please check and try again.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    final String date = editTextDate.getText().toString().trim();
-                    final String teacher = editTextTeacher.getText().toString().trim();
-                    final String comments = editTextComments.getText().toString().trim();
-                    final Course selectedCourse = (Course) spinnerCourses.getSelectedItem();
-
-                    if (date.isEmpty() || teacher.isEmpty() || selectedCourse == null) {
-                        Toast.makeText(context, "Please fill in all required fields!", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    classInstance.setDate(date);
-                    classInstance.setTeacher(teacher);
-                    classInstance.setComments(comments);
-                    classInstance.setCourseId(selectedCourse.getId());
-                    classInstance.setCourseName(selectedCourse.getCourseName());
-
-                    if (firestoreId == null) {
-                        Log.e("Firestore", "firestoreId không hợp lệ!");
-                    } else {
-                        Log.d("Firestore", "firestoreId hợp lệ: " + firestoreId);
-                    }
-
-                    // Update SQLite database
-                    if (databaseHelper.updateClassInstance(firestoreId, classInstance)) {
-                        notifyItemChanged(classInstanceList.indexOf(classInstance));
-                        loadClassInstances(); // Tải lại danh sách sau khi cập nhật
-                        Toast.makeText(context, "Class instance updated successfully!", Toast.LENGTH_SHORT).show();
-
-                    } else {
-                        Toast.makeText(context, "Failed to update class instance!", Toast.LENGTH_SHORT).show();
-                    }
-                })
+                .setPositiveButton("Save", null)
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
         AlertDialog alertDialog = dialogBuilder.create();
+
+        alertDialog.setOnShowListener(dialog -> {
+            Button saveButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            saveButton.setOnClickListener(view -> {
+                if (!NetworkUtil.isNetworkAvailable(context)) {
+                    Toast.makeText(context, "No network connection. Please check and try again.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                final String date = editTextDate.getText().toString().trim();
+                final String teacher = editTextTeacher.getText().toString().trim();
+                final String comments = editTextComments.getText().toString().trim();
+                final Course selectedCourse = (Course) spinnerCourses.getSelectedItem();
+
+                if (date.isEmpty() || teacher.isEmpty() || selectedCourse == null) {
+                    Toast.makeText(context, "Please fill in all required fields!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                String courseDayOfWeek = selectedCourse.getDayOfWeek();
+                if (!validateDate(date, courseDayOfWeek)) {
+                    Toast.makeText(context, "The date does not match the course's day of the week (" + courseDayOfWeek + ").", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                classInstance.setDate(date);
+                classInstance.setTeacher(teacher);
+                classInstance.setComments(comments);
+                classInstance.setCourseId(selectedCourse.getId());
+                classInstance.setCourseName(selectedCourse.getCourseName());
+
+                if (databaseHelper.updateClassInstance(firestoreId, classInstance)) {
+                    notifyItemChanged(classInstanceList.indexOf(classInstance));
+                    loadClassInstances(); // Tải lại danh sách sau khi cập nhật
+                    Toast.makeText(context, "Class instance updated successfully!", Toast.LENGTH_SHORT).show();
+                    alertDialog.dismiss(); // Đóng dialog sau khi thành công
+                } else {
+                    Toast.makeText(context, "Failed to update class instance!", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+        });
+
         alertDialog.show();
+    }
+
+    private boolean validateDate(String date, String expectedDayOfWeek) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            sdf.setLenient(false);
+
+            Date parsedDate = sdf.parse(date);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(parsedDate);
+            int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+
+            String[] days = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+            String actualDayOfWeek = days[dayOfWeek - 1];
+
+            Log.d("Debug", "Input date: " + actualDayOfWeek + ", Expected date: " + expectedDayOfWeek);
+            return actualDayOfWeek.equalsIgnoreCase(expectedDayOfWeek);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // Method to delete a class instance

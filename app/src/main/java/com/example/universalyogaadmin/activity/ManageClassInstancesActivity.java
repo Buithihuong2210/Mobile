@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class ManageClassInstancesActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
@@ -211,29 +212,32 @@ public class ManageClassInstancesActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> Log.e("Firestore", "Error syncing with Firestore", e));
     }
 
-    private boolean validateDate(String date, String courseDayOfWeek) {
+    private boolean validateDate(String date, String expectedDayOfWeek) {
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-            sdf.setLenient(false); // Disallow invalid dates
+            // Định dạng ngày mới: dd/MM/yyyy
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            sdf.setLenient(false); // Bắt lỗi nếu ngày không hợp lệ
+
+            // Parse ngày từ chuỗi
             Date parsedDate = sdf.parse(date);
 
+            // Lấy ngày trong tuần từ ngày đã parse
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(parsedDate);
             int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
 
-            if (dayOfWeek == Calendar.SUNDAY) {
-                dayOfWeek = 7;
-            } else {
-                dayOfWeek--;
-            }
+            // Map ngày của Calendar sang tên ngày trong tuần
+            String[] days = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+            String actualDayOfWeek = days[dayOfWeek - 1];
 
-            int courseDayOfWeekInt = convertDayOfWeekStringToInt(courseDayOfWeek);
+            // Log để kiểm tra ngày thực tế và ngày mong đợi
+            Log.d("Debug", "Ngày nhập: " + actualDayOfWeek + ", Ngày mong đợi: " + expectedDayOfWeek);
 
-            return dayOfWeek == courseDayOfWeekInt;
-
+            // So sánh tên ngày thực tế với ngày mong đợi
+            return actualDayOfWeek.equalsIgnoreCase(expectedDayOfWeek);
         } catch (ParseException e) {
-            Toast.makeText(this, "Invalid date, please enter in dd/MM/yyyy format!", Toast.LENGTH_SHORT).show();
-            return false;
+            e.printStackTrace();
+            return false; // Trả về false nếu không parse được ngày
         }
     }
 
